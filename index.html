@@ -1137,7 +1137,7 @@
 <!-- FIREBASE + APP SCRIPT -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getDatabase, ref, get, push, set, onValue, child } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD5JGQ3eARM5Lo2IG3mkpdx7p3uh0nrBIk",
@@ -1328,86 +1328,71 @@ window.submitRegistration = async function() {
   }
 };
 
-// ── LOAD FROM REALTIME DATABASE ──
-async function loadData() {
-  // Render defaults first (instant UX)
+// ── LOAD FROM REALTIME DATABASE (per-node listeners) ──
+function loadData() {
+  // Render defaults dulu biar langsung kelihatan
   renderFeatures(defaultFeatures);
   renderStaff(defaultStaff);
   renderNews(defaultNews);
 
-  const dbRef = ref(db);
+  // ── CONFIG (realtime) ──
+  onValue(ref(db, 'config'), (snap) => {
+    if (!snap.exists()) return;
+    const cfg = snap.val();
+    if (cfg.serverIP) document.getElementById('serverIP').textContent = cfg.serverIP;
+  }, (err) => console.warn('config error:', err.message));
 
-  try {
-    const snapshot = await get(dbRef);
-    if (!snapshot.exists()) {
-      // No data yet — animate defaults
-      countUp(document.getElementById('statOnline'), 47);
-      countUp(document.getElementById('statMembers'), 1284);
-      countUp(document.getElementById('statFactions'), 12);
-      countUp(document.getElementById('statNews'), 38);
+  // ── STATS (realtime live update) ──
+  let statsAnimated = false;
+  onValue(ref(db, 'stats'), (snap) => {
+    if (!snap.exists()) {
+      if (!statsAnimated) {
+        statsAnimated = true;
+        countUp(document.getElementById('statOnline'), 47);
+        countUp(document.getElementById('statMembers'), 1284);
+        countUp(document.getElementById('statFactions'), 12);
+        countUp(document.getElementById('statNews'), 38);
+      }
       return;
     }
-
-    const data = snapshot.val();
-
-    // CONFIG
-    if (data.config?.serverIP) {
-      document.getElementById('serverIP').textContent = data.config.serverIP;
-    }
-
-    // STATS
-    if (data.stats) {
-      countUp(document.getElementById('statOnline'), data.stats.online || 0);
-      countUp(document.getElementById('statMembers'), data.stats.members || 0);
-      countUp(document.getElementById('statFactions'), data.stats.factions || 0);
-      countUp(document.getElementById('statNews'), data.stats.news || 0);
+    const s = snap.val();
+    if (!statsAnimated) {
+      statsAnimated = true;
+      countUp(document.getElementById('statOnline'), s.online || 0);
+      countUp(document.getElementById('statMembers'), s.members || 0);
+      countUp(document.getElementById('statFactions'), s.factions || 0);
+      countUp(document.getElementById('statNews'), s.news || 0);
     } else {
-      countUp(document.getElementById('statOnline'), 47);
-      countUp(document.getElementById('statMembers'), 1284);
-      countUp(document.getElementById('statFactions'), 12);
-      countUp(document.getElementById('statNews'), 38);
-    }
-
-    // FEATURES
-    if (data.features) {
-      const feats = Object.values(data.features).sort((a, b) => (a.order||0) - (b.order||0));
-      if (feats.length) renderFeatures(feats);
-    }
-
-    // STAFF
-    if (data.staff) {
-      const staffList = Object.values(data.staff).sort((a, b) => (a.order||0) - (b.order||0));
-      if (staffList.length) renderStaff(staffList);
-    }
-
-    // NEWS
-    if (data.news) {
-      const newsList = Object.values(data.news).sort((a, b) => (a.order||0) - (b.order||0));
-      if (newsList.length) {
-        window.allNews = newsList;
-        renderNews(newsList);
-      }
-    }
-
-  } catch (err) {
-    console.error('Firebase load error:', err);
-    // Fallback to defaults with animated counters
-    countUp(document.getElementById('statOnline'), 47);
-    countUp(document.getElementById('statMembers'), 1284);
-    countUp(document.getElementById('statFactions'), 12);
-    countUp(document.getElementById('statNews'), 38);
-  }
-
-  // REALTIME: listen for stats changes live
-  onValue(ref(db, 'stats'), (snap) => {
-    if (snap.exists()) {
-      const s = snap.val();
       document.getElementById('statOnline').textContent = (s.online || 0).toLocaleString();
       document.getElementById('statMembers').textContent = (s.members || 0).toLocaleString();
       document.getElementById('statFactions').textContent = (s.factions || 0).toLocaleString();
       document.getElementById('statNews').textContent = (s.news || 0).toLocaleString();
     }
-  });
+  }, (err) => console.warn('stats error:', err.message));
+
+  // ── FEATURES (realtime) ──
+  onValue(ref(db, 'features'), (snap) => {
+    if (!snap.exists()) return;
+    const feats = Object.values(snap.val()).sort((a, b) => (a.order||0) - (b.order||0));
+    if (feats.length) renderFeatures(feats);
+  }, (err) => console.warn('features error:', err.message));
+
+  // ── STAFF (realtime) ──
+  onValue(ref(db, 'staff'), (snap) => {
+    if (!snap.exists()) return;
+    const staffList = Object.values(snap.val()).sort((a, b) => (a.order||0) - (b.order||0));
+    if (staffList.length) renderStaff(staffList);
+  }, (err) => console.warn('staff error:', err.message));
+
+  // ── NEWS (realtime) ──
+  onValue(ref(db, 'news'), (snap) => {
+    if (!snap.exists()) return;
+    const newsList = Object.values(snap.val()).sort((a, b) => (a.order||0) - (b.order||0));
+    if (newsList.length) {
+      window.allNews = newsList;
+      renderNews(newsList);
+    }
+  }, (err) => console.warn('news error:', err.message));
 }
 
 loadData();

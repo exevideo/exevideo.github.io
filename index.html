@@ -649,16 +649,104 @@ select.f-inp option{background:var(--s3)}
 /* ═══════════════════════════════════════════════════════════════
    TOASTS
 ═══════════════════════════════════════════════════════════════ */
-#toasts{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:7px}
+#toasts{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+#toast-notifications{position:fixed;top:80px;right:22px;z-index:998;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:420px}
+#toast-admin-chat{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);z-index:997;pointer-events:none;max-width:500px}
+
+/* Base Toast */
 .toast{
   padding:11px 18px;border-radius:var(--r);font-size:13.5px;
   transform:translateX(120%);transition:transform .28s ease;max-width:300px;
-  border:1px solid var(--bdr);background:var(--s2);box-shadow:0 8px 32px rgba(0,0,0,.4)
+  border:1px solid var(--bdr);background:var(--s2);box-shadow:0 8px 32px rgba(0,0,0,.4);
+  pointer-events:auto;display:flex;align-items:center;gap:9px
 }
 .toast.in{transform:translateX(0)}
+.toast svg{width:17px;height:17px;flex-shrink:0}
+
+/* Simple Toasts */
 .toast.ok{background:rgba(0,255,135,.12);border-color:var(--bdr2);color:#6effc0}
 .toast.err{background:rgba(255,71,87,.12);border-color:rgba(255,71,87,.3);color:#ff8f9a}
 .toast.inf{background:var(--s3);color:var(--txt2)}
+.toast.warn{background:rgba(255,208,96,.12);border-color:rgba(255,208,96,.3);color:#ffd060}
+
+/* Notification Toast (Main) */
+.toast-notif{
+  max-width:420px;padding:14px 16px;border-radius:var(--r2);
+  border:1.5px solid rgba(0,255,135,.15);background:rgba(12,22,16,.92);
+  backdrop-filter:blur(16px);box-shadow:0 12px 40px rgba(0,255,135,.08);
+  animation:slideInRight .32s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display:flex;align-items:flex-start;gap:12px
+}
+.toast.notif-success .toast-notif-icon{color:#6effc0}
+.toast.notif-error .toast-notif-icon{color:#ff8f9a}
+.toast.notif-warn .toast-notif-icon{color:#ffd060}
+.toast-notif-icon{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:50%;background:currentColor;opacity:.2}
+.toast-notif-icon svg{width:12px;height:12px;color:var(--txt);stroke-width:2.5}
+.toast-notif-content{flex:1}
+.toast-notif-title{font-weight:600;color:var(--txt);margin-bottom:2px}
+.toast-notif-text{font-size:12.5px;color:var(--txt2)}
+.toast-notif-time{font-size:10px;color:var(--txt3);margin-top:4px}
+.toast-close-btn{
+  margin-left:8px;flex-shrink:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  background:transparent;color:var(--txt3);border:none;cursor:pointer;border-radius:4px;
+  transition:all var(--tr);opacity:.6
+}
+.toast-close-btn:hover{opacity:1;background:rgba(255,255,255,.08);color:var(--txt)}
+.toast-close-btn svg{width:14px;height:14px}
+
+/* Success/Danger/Warning Toasts */
+.toast-status{
+  max-width:420px;padding:12px 14px;border-radius:var(--r2);
+  display:flex;align-items:center;gap:10px;animation:slideInRight .32s cubic-bezier(0.34, 1.56, 0.64, 1)
+}
+.toast.success .toast-status{background:rgba(0,255,135,.12);border:1.5px solid rgba(0,255,135,.2)}
+.toast.danger .toast-status{background:rgba(255,71,87,.12);border:1.5px solid rgba(255,71,87,.25)}
+.toast.warning .toast-status{background:rgba(255,208,96,.12);border:1.5px solid rgba(255,208,96,.25)}
+.toast-status-icon{width:20px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.toast.success .toast-status-icon{background:rgba(0,255,135,.2);color:#6effc0}
+.toast.danger .toast-status-icon{background:rgba(255,71,87,.2);color:#ff8f9a}
+.toast.warning .toast-status-icon{background:rgba(255,208,96,.2);color:#ffd060}
+.toast-status-icon svg{width:12px;height:12px;stroke-width:2.5}
+.toast-status-text{flex:1;font-size:13px;color:var(--txt2)}
+.toast-status-action{margin-left:auto;display:flex;gap:6px}
+
+/* Admin Global Chat Toast */
+.toast-admin-chat{
+  pointer-events:auto;padding:14px 16px;border-radius:var(--r2);
+  background:rgba(12,22,16,.95);border:1.5px solid rgba(0,255,135,.15);
+  box-shadow:0 16px 48px rgba(0,0,0,.6);backdrop-filter:blur(16px);
+  animation:slideUp .32s cubic-bezier(0.34, 1.56, 0.64, 1)
+}
+.toast-admin-header{display:flex;align-items:center;gap:10px;margin-bottom:8px;color:var(--txt);font-weight:600;font-size:13px}
+.toast-admin-icon{font-size:16px}
+.toast-admin-msg{font-size:13.5px;color:var(--txt2);line-height:1.5;margin-bottom:8px}
+.toast-admin-time{font-size:10px;color:var(--txt3)}
+
+/* Progress/Interactive Toast */
+.toast-progress{
+  max-width:320px;padding:14px;border-radius:var(--r2);
+  background:rgba(12,22,16,.95);border:1.5px solid rgba(0,255,135,.15);
+  animation:slideInRight .32s cubic-bezier(0.34, 1.56, 0.64, 1)
+}
+.toast-progress-title{font-weight:600;color:var(--txt);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.toast-progress-icon{width:16px;height:16px;color:var(--acc);animation:spin 1s linear infinite}
+@keyframes spin{100%{transform:rotate(360deg)}}
+.toast-progress-text{font-size:12px;color:var(--txt3);margin-bottom:8px}
+.toast-progress-bar{width:100%;height:4px;background:var(--s3);border-radius:2px;overflow:hidden;margin-bottom:8px}
+.toast-progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),#00b860);transition:width .3s ease}
+.toast-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--txt3);margin-bottom:8px}
+.toast-progress-actions{display:flex;gap:7px;justify-content:space-between}
+.toast-action-btn{
+  flex:1;padding:6px 10px;border-radius:6px;font-size:11.5px;font-weight:600;
+  border:1px solid var(--bdr);background:var(--s3);color:var(--txt2);cursor:pointer;
+  transition:all var(--tr)
+}
+.toast-action-btn:hover{background:var(--s4);color:var(--txt)}
+.toast-action-btn.primary{background:var(--acc);color:#061509;border-color:var(--acc)}
+.toast-action-btn.primary:hover{background:var(--acc2)}
+
+@keyframes slideInRight{from{opacity:0;transform:translateX(120%)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE
@@ -1057,8 +1145,10 @@ select.f-inp option{background:var(--s3)}
   </div>
 </div>
 
-<!-- TOAST -->
+<!-- TOASTS -->
 <div id="toasts"></div>
+<div id="toast-notifications"></div>
+<div id="toast-admin-chat"></div>
 
 <!-- ╔══════════════════════════════════════════╗
      ║             FIREBASE LOGIC              ║
@@ -1869,14 +1959,244 @@ function ago(ts){
   if(mo<12) return mo+' bln lalu';
   return Math.floor(mo/12)+' thn lalu';
 }
-function toast(msg, type='inf'){
+function toast(msg, type='inf', duration=3200){
+  // Legacy simple toasts
   const c=document.getElementById('toasts');
   const t=document.createElement('div');
   t.className=`toast ${type}`;t.textContent=msg;
   c.appendChild(t);
   requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('in')));
-  setTimeout(()=>{ t.classList.remove('in'); setTimeout(()=>t.remove(),320); },3200);
+  setTimeout(()=>{ t.classList.remove('in'); setTimeout(()=>t.remove(),320); },duration);
 }
+
+/**
+ * Enhanced Toast System for ExeVideo v1.0.0
+ * Supports: success, error, warning, info, progress, admin notifications
+ */
+window.showToast = function(options){
+  const defaults = {
+    type: 'info', // 'info', 'success', 'error', 'warning', 'progress', 'admin'
+    title: '',
+    message: '',
+    icon: null,
+    duration: 3500,
+    dismissible: true,
+    actions: null, // {text: string, onClick: function}[]
+    onDismiss: null,
+    container: 'toasts'
+  };
+  
+  const config = {...defaults, ...options};
+  const container = document.getElementById(config.container) || document.getElementById('toasts');
+  
+  if(config.type === 'progress'){ return createProgressToast(config, container); }
+  if(config.type === 'admin'){ return createAdminToast(config, container); }
+  if(config.type === 'notif'){ return createNotificationToast(config, container); }
+  
+  // Default toast
+  const toastEl = document.createElement('div');
+  toastEl.className = `toast ${config.type}`;
+  
+  const content = document.createElement('div');
+  content.style.flex = '1';
+  content.innerHTML = config.message || config.title;
+  
+  toastEl.appendChild(content);
+  if(config.dismissible){
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toast-close-btn';
+    closeBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.onclick = () => { toastEl.classList.remove('in'); setTimeout(()=>toastEl.remove(),320); config.onDismiss?.(); };
+    toastEl.appendChild(closeBtn);
+  }
+  
+  container.appendChild(toastEl);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>toastEl.classList.add('in')));
+  setTimeout(()=>{ toastEl.classList.remove('in'); setTimeout(()=>toastEl.remove(),320); },config.duration);
+  return toastEl;
+};
+
+function createNotificationToast(config, container){
+  const toastEl = document.createElement('div');
+  toastEl.className = `toast notif-${config.type}`;
+  
+  const html = `
+    <div class="toast-notif">
+      <div class="toast-notif-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          ${config.type === 'success' ? '<path d="M20 6L9 17l-5-5"/>' : 
+            config.type === 'error' ? '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>' :
+            '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'}
+        </svg>
+      </div>
+      <div class="toast-notif-content">
+        ${config.title ? `<div class="toast-notif-title">${config.title}</div>` : ''}
+        <div class="toast-notif-text">${config.message}</div>
+        ${config.timestamp ? `<div class="toast-notif-time">${config.timestamp}</div>` : ''}
+      </div>
+      ${config.dismissible ? '<button class="toast-close-btn" onclick="this.parentElement.parentElement.classList.remove(\'in\'); setTimeout(()=>this.parentElement.parentElement.remove(),320)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>' : ''}
+    </div>
+  `;
+  
+  toastEl.innerHTML = html;
+  const notifContainer = document.getElementById('toast-notifications') || container;
+  notifContainer.appendChild(toastEl);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>toastEl.classList.add('in')));
+  setTimeout(()=>{ toastEl.classList.remove('in'); setTimeout(()=>toastEl.remove(),320); },config.duration);
+  return toastEl;
+}
+
+function createProgressToast(config, container){
+  const toastEl = document.createElement('div');
+  toastEl.className = 'toast';
+  
+  const html = `
+    <div class="toast-progress">
+      <div class="toast-progress-title">
+        <svg class="toast-progress-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 2H9a7 7 0 0 0 0 14h6a7 7 0 0 0 0-14Z"/>
+        </svg>
+        <span>${config.title || 'Proses berjalan...'}</span>
+      </div>
+      <div class="toast-progress-text">${config.message}</div>
+      <div class="toast-progress-bar">
+        <div class="toast-progress-fill" id="prog-fill-${Date.now()}" style="width:0%"></div>
+      </div>
+      <div class="toast-progress-label">
+        <span id="prog-text-${Date.now()}">0%</span>
+        <span>${config.subtitle || ''}</span>
+      </div>
+      ${config.actions ? `<div class="toast-progress-actions">
+        ${config.actions.map((a,i)=> `<button class="toast-action-btn ${a.primary?'primary':''}" onclick="${a.onClick}">${a.text}</button>`).join('')}
+      </div>` : ''}
+    </div>
+  `;
+  
+  toastEl.innerHTML = html;
+  container.appendChild(toastEl);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>toastEl.classList.add('in')));
+  
+  toastEl.updateProgress = (percent) => {
+    const fillEl = toastEl.querySelector('[id^="prog-fill"]');
+    const textEl = toastEl.querySelector('[id^="prog-text"]');
+    if(fillEl) fillEl.style.width = percent + '%';
+    if(textEl) textEl.textContent = percent + '%';
+  };
+  
+  if(config.duration){
+    setTimeout(()=>{ toastEl.classList.remove('in'); setTimeout(()=>toastEl.remove(),320); },config.duration);
+  }
+  
+  return toastEl;
+}
+
+function createAdminToast(config, container){
+  const toastEl = document.createElement('div');
+  toastEl.className = 'toast';
+  const now = new Date();
+  const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const dateStr = `${now.getDate()}/${now.getMonth()+1}/${now.getFullYear()}`;
+  
+  const html = `
+    <div class="toast-admin-chat">
+      <div class="toast-admin-header">
+        <span class="toast-admin-icon">📢</span>
+        <span style="color:var(--acc)">ExeVideo ${config.badge ? `(${config.badge})` : ''}</span>
+      </div>
+      <div class="toast-admin-msg">${config.message}</div>
+      <div class="toast-admin-time">${timeStr} · ${dateStr}</div>
+    </div>
+  `;
+  
+  toastEl.innerHTML = html;
+  const chatContainer = document.getElementById('toast-admin-chat') || container;
+  chatContainer.appendChild(toastEl);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>toastEl.classList.add('in')));
+  
+  // Auto-dismiss after 1 minute (60000ms) but allow manual close
+  const timeout = setTimeout(()=>{ toastEl.classList.remove('in'); setTimeout(()=>toastEl.remove(),320); },60000);
+  
+  toastEl.remove = new Proxy(toastEl.remove, {
+    apply(target, thisArg){
+      clearTimeout(timeout);
+      thisArg.classList.remove('in'); 
+      return setTimeout(()=>target.call(thisArg),320);
+    }
+  });
+  
+  return toastEl;
+}
+
+// Connection Status Toast (Internet connectivity)
+window.showConnectionToast = function(isConnected){
+  showToast({
+    type: 'notif',
+    container: 'toast-notifications',
+    title: isConnected ? '✅ Terhubung' : '❌ Tidak Terhubung',
+    message: isConnected ? 'Koneksi internet telah dipulihkan' : 'Koneksi internet hilang',
+    icon: isConnected ? '✅' : '❌',
+    duration: isConnected ? 2500 : 0 // Keep error longer
+  });
+};
+
+// Convenience functions for common toasts
+window.successToast = (msg, duration=3500) => showToast({type:'success', message:msg, container:'toasts', duration, dismissible:true});
+window.errorToast = (msg, duration=5000) => showToast({type:'error', message:msg, container:'toasts', duration, dismissible:true});
+window.warningToast = (msg, duration=4000) => showToast({type:'warning', message:msg, container:'toasts', duration, dismissible:true});
+window.infoToast = (msg, duration=3500) => showToast({type:'info', message:msg, container:'toasts', duration, dismissible:true});
+
+window.showProgressToast = (title, onCancel) => {
+  return showToast({
+    type: 'progress',
+    title: title,
+    message: '',
+    duration: 0,
+    actions: [{text:'Batalkan', onClick: onCancel?'onCancel':''}],
+    container: 'toasts'
+  });
+};
+
+window.showAdminGlobalChat = (message, badge='STAFF') => {
+  return showToast({
+    type: 'admin',
+    message: message,
+    badge: badge, 
+    container: 'toast-admin-chat'
+  });
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   CONNECTION STATUS MONITORING
+══════════════════════════════════════════════════════════════════ */
+let isOnline = navigator.onLine;
+
+window.addEventListener('online', () => {
+  if (!isOnline) {
+    isOnline = true;
+    setTimeout(() => {
+      showConnectionToast(true);
+    }, 500);
+  }
+});
+
+window.addEventListener('offline', () => {
+  if (isOnline) {
+    isOnline = false;
+    showConnectionToast(false);
+  }
+});
+
+// Check initial connection status on page load
+window.addEventListener('load', () => {
+  if (!navigator.onLine && !isOnline) {
+    // Still offline, may show after short delay
+    setTimeout(() => {
+      if (!navigator.onLine) {
+        showConnectionToast(false);
+      }
+    }, 1000);
+  }
+});
 
 // Expose el for inline onclick
 window.el = el;

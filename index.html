@@ -800,13 +800,51 @@ function sNext(step,skip){
 }
 async function finishSetup(){
   if(!CU) return;
+  const btn = G('ss3') ? G('ss3').querySelector('button') : null;
+  if(btn){ btn.disabled=true; btn.textContent='Membuat akun...'; }
   try{
-    const p={username:setupD.username,displayName:setupD.displayName,photoURL:CU.photoURL||'',email:CU.email,phone:setupD.phone||null,age:setupD.age||null,staff:false,owner:false,ratingAccess:{},purchases:{},createdAt:Date.now()};
-    await db.ref('users/'+CU.uid).set(p);
-    await db.ref('usernames/'+setupD.username.toLowerCase()).set(CU.uid);
-    UP=p;isSt=false;isOwn=false;
-    toast('Selamat datang! 🎉','ok');closeM('auth');renderNavIn();loadHome();
-  }catch(e){toast('Error: '+e.message,'err');}
+    const uid = CU.uid;
+    const uname = setupD.username.toLowerCase();
+
+    // Cek username belum dipakai
+    const usnap = await db.ref('usernames/'+uname).once('value');
+    if(usnap.exists() && usnap.val() !== uid){
+      toast('Username sudah dipakai, pilih lain','err');
+      if(btn){ btn.disabled=false; btn.textContent='Masuk ke Platform'; }
+      return;
+    }
+
+    // Pakai update() bukan set() agar field owner/staff tidak di-overwrite
+    // Rules memperbolehkan user write field-field ini karena owner & staff = false
+    await db.ref('users/'+uid).update({
+      username:    setupD.username,
+      displayName: setupD.displayName,
+      photoURL:    CU.photoURL||'',
+      email:       CU.email||'',
+      phone:       setupD.phone||null,
+      age:         setupD.age||null,
+      staff:       false,
+      owner:       false,
+      createdAt:   Date.now()
+    });
+
+    // Daftarkan index username
+    await db.ref('usernames/'+uname).set(uid);
+
+    // Baca ulang profil dari DB
+    const snap = await db.ref('users/'+uid).once('value');
+    UP = snap.val();
+    isSt = false; isOwn = false;
+
+    toast('Selamat datang! 🎉','ok');
+    closeM('auth');
+    renderNavIn();
+    loadHome();
+  } catch(e){
+    console.error('finishSetup error:', e);
+    toast('Gagal buat akun: '+e.message,'err');
+    if(btn){ btn.disabled=false; btn.textContent='Masuk ke Platform'; }
+  }
 }
 
 /* ── ImgBB ── */
@@ -1251,10 +1289,13 @@ function renderSettings(){
     <button class="btn btn-p" onclick="saveSettings()">Simpan</button>`;
 }
 async function saveSettings(){
-  const name=G('set-name').value.trim(),phone=G('set-phone').value.trim();
+  const name=G('set-name').value.trim(), phone=G('set-phone').value.trim();
   if(!name){toast('Nama wajib','err');return;}
-  await db.ref(`users/${CU.uid}`).update({displayName:name,phone:phone||null});
-  UP.displayName=name;UP.phone=phone||null;toast('Tersimpan','ok');renderNavIn();
+  try{
+    await db.ref('users/'+CU.uid).update({displayName:name, phone:phone||null, updatedAt:Date.now()});
+    UP.displayName=name; UP.phone=phone||null;
+    toast('Tersimpan','ok'); renderNavIn();
+  }catch(e){ toast('Gagal simpan: '+e.message,'err'); }
 }
 
 /* ── INIT — handle redirect result dulu sebelum apapun ── */

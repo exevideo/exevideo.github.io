@@ -701,17 +701,25 @@ function go(page){
 }
 
 /* ── Auth ── */
+let authReady = false;
 auth.onAuthStateChanged(async u=>{
   CU=u;
   if(u){
-    const snap=await db.ref('users/'+u.uid).once('value');
-    UP=snap.val()||null;
-    isSt=UP?.staff===true; isOwn=UP?.owner===true;
-    if(!UP?.username){showSetup();}
-    else{closeM('auth');renderNavIn();}
-    loadHome();
+    try{
+      const snap=await db.ref('users/'+u.uid).once('value');
+      UP=snap.val()||null;
+      isSt=UP?.staff===true; isOwn=UP?.owner===true;
+      if(!UP?.username){ showSetup(); }
+      else{ closeM('auth'); renderNavIn(); }
+    }catch(e){
+      UP=null; isSt=false; isOwn=false;
+      console.warn('Failed to load user profile:', e.message);
+    }
+    if(!authReady){ authReady=true; loadHome(); }
   } else {
-    UP=null;isSt=false;isOwn=false;renderNavOut();
+    UP=null; isSt=false; isOwn=false;
+    renderNavOut();
+    if(!authReady){ authReady=true; loadHome(); }
   }
 });
 function renderNavIn(){
@@ -723,8 +731,45 @@ function renderNavIn(){
 function renderNavOut(){
   G('nav-r').innerHTML=`<button class="btn btn-o btn-sm" onclick="openM('auth')">Login</button><button class="btn btn-p btn-sm" onclick="openM('auth')">Register</button>`;
 }
-async function loginGoogle(){try{await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());}catch(e){toast('Login gagal','err');}}
+async function loginGoogle(){
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.addScope('profile');
+  provider.addScope('email');
+  // GitHub Pages & beberapa browser blok popup — pakai redirect sebagai fallback
+  const isGHPages = location.hostname.endsWith('github.io') || location.hostname.endsWith('github.com');
+  if(isGHPages){
+    try{ await auth.signInWithRedirect(provider); }
+    catch(e){ toast('Redirect gagal: '+e.message,'err'); }
+    return;
+  }
+  try{
+    await auth.signInWithPopup(provider);
+  } catch(e){
+    // popup blocked / closed — fallback ke redirect
+    if(e.code==='auth/popup-blocked'||e.code==='auth/popup-closed-by-user'||e.code==='auth/cancelled-popup-request'){
+      try{ await auth.signInWithRedirect(provider); }
+      catch(e2){ toast('Login gagal: '+e2.message,'err'); }
+    } else {
+      toast('Login gagal: '+e.message,'err');
+    }
+  }
+}
 async function doOut(){await auth.signOut();go('home');toast('Logout berhasil','ok');}
+
+/* ── Handle redirect result (dipanggil setelah kembali dari Google redirect) ── */
+async function handleRedirectResult(){
+  try{
+    const result = await auth.getRedirectResult();
+    if(result && result.user){
+      // user sudah di-set oleh onAuthStateChanged, tapi tampilkan toast konfirmasi
+      toast('Login berhasil! 🎉','ok');
+    }
+  } catch(e){
+    if(e.code && e.code !== 'auth/no-auth-event'){
+      toast('Login error: '+e.message,'err');
+    }
+  }
+}
 
 /* ── Setup ── */
 function showSetup(){G('ap1').style.display='none';G('ap2').style.display='block';openM('auth');}
@@ -1212,7 +1257,14 @@ async function saveSettings(){
   UP.displayName=name;UP.phone=phone||null;toast('Tersimpan','ok');renderNavIn();
 }
 
-loadHome();
+/* ── INIT — handle redirect result dulu sebelum apapun ── */
+(async function init(){
+  // Tangkap hasil redirect login dari Google (untuk GitHub Pages)
+  await handleRedirectResult();
+  // onAuthStateChanged sudah akan trigger loadHome() setelah user state ready
+  // Fallback: jika setelah 4 detik auth belum ready (jarang terjadi), muat home
+  setTimeout(()=>{ if(!authReady){ authReady=true; loadHome(); } }, 4000);
+})();
 </script>
 </body>
 </html>

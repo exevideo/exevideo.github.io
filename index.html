@@ -525,7 +525,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="md-bd">
       <div class="fg">
         <label class="fl">Foto Produk *</label>
-        <div class="uz" onclick="Q('#pf-img').click()">
+        <div class="uz" onclick="document.getElementById('pf-img').click()">
           <div id="pf-img-w"><div style="font-size:28px;">📸</div><div class="uz-t">Klik untuk upload foto</div></div>
           <img id="pf-img-p" class="up" style="display:none;">
         </div>
@@ -552,7 +552,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="md-bd">
       <div class="fg">
         <label class="fl">Cover Image</label>
-        <div class="uz" onclick="Q('#bf-img').click()">
+        <div class="uz" onclick="document.getElementById('bf-img').click()">
           <div id="bf-img-w"><div style="font-size:24px;">📷</div><div class="uz-t">Upload cover</div></div>
           <img id="bf-img-p" class="up" style="display:none;">
         </div>
@@ -578,7 +578,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="md-bd">
       <div class="fg">
         <label class="fl">Screenshot (Opsional)</label>
-        <div class="uz" onclick="Q('#uf-img').click()">
+        <div class="uz" onclick="document.getElementById('uf-img').click()">
           <div id="uf-img-w"><div style="font-size:24px;">🖼️</div><div class="uz-t">Upload gambar</div></div>
           <img id="uf-img-p" class="up" style="display:none;">
         </div>
@@ -673,6 +673,7 @@ let bTags=[],selR=0,setupD={};
 /* ── Util ── */
 const Q=s=>document.querySelector(s);
 const G=id=>document.getElementById(id);
+window.Q=Q; window.G=G;
 const rp=n=>'Rp '+Number(n).toLocaleString('id-ID');
 const ago=ts=>{
   if(!ts) return '';
@@ -898,10 +899,15 @@ async function saveCat(){
   if(!isSt&&!isOwn){toast('Akses ditolak','err');return;}
   const name=G('cf-name').value.trim(),icon=G('cf-icon').value.trim()||'🎮',desc=G('cf-desc').value.trim(),id=G('cf-id').value;
   if(!name){toast('Nama wajib','err');return;}
-  await (id?db.ref('categories/'+id):db.ref('categories').push()).set({name,icon,desc,createdAt:Date.now(),by:CU.uid});
-  toast('Kategori disimpan','ok');closeM('cat-form');
-  G('cf-name').value='';G('cf-icon').value='';G('cf-desc').value='';G('cf-id').value='';
-  loadCats();
+  try{
+    await (id?db.ref('categories/'+id):db.ref('categories').push()).set({name,icon,desc,createdAt:Date.now(),by:CU.uid});
+    toast('Kategori disimpan','ok');closeM('cat-form');
+    G('cf-name').value='';G('cf-icon').value='';G('cf-desc').value='';G('cf-id').value='';
+    loadCats();
+  }catch(e){
+    console.error('[saveCat]',e);
+    toast('Gagal simpan kategori: '+e.message,'err');
+  }
 }
 async function loadCats(){
   const s=await db.ref('categories').once('value');CATS=s.val()||{};
@@ -940,9 +946,13 @@ async function saveProd(){
       createdAt:id?PRODS[id]?.createdAt:Date.now(),updatedAt:Date.now(),by:CU.uid,
       totalPurchases:id?PRODS[id]?.totalPurchases||0:0,avgRating:id?PRODS[id]?.avgRating||0:0,ratingCount:id?PRODS[id]?.ratingCount||0:0};
     await (id?db.ref('products/'+id):db.ref('products').push()).set(data);
-    toast('Produk disimpan','ok');closeM('prod-form');rstProdF();loadAdmProds();
-  }catch(e){toast('Error: '+e.message,'err');}
-  G('pf-btn').textContent='Simpan Produk';G('pf-btn').disabled=false;
+    toast('Produk disimpan! 📦','ok');closeM('prod-form');rstProdF();loadAdmProds();
+  }catch(e){
+    console.error('[saveProd]',e);
+    toast('Gagal simpan produk: '+e.message,'err');
+  }finally{
+    G('pf-btn').textContent='Simpan Produk';G('pf-btn').disabled=false;
+  }
 }
 function rstProdF(){['pf-name','pf-price','pf-wa','pf-desc','pf-id'].forEach(x=>G(x).value='');G('pf-cat').value='';G('pf-stock').value='99';rstUp('pf-img','pf-img-p','pf-img-w');}
 function editProd(id){
@@ -1057,15 +1067,34 @@ function renderBTags(){G('bf-tags').innerHTML=bTags.map((t,i)=>`<span class="tp"
 function rmTag(i){bTags.splice(i,1);renderBTags();}
 async function saveBlog(){
   if(!isSt&&!isOwn){toast('Akses ditolak','err');return;}
-  const title=G('bf-title').value.trim(),content=G('bf-content').value.trim(),id=G('bf-id').value,f=G('bf-img').files[0];
-  if(!title||!content){toast('Judul dan konten wajib','err');return;}
+  const title=G('bf-title').value.trim();
+  const content=G('bf-content').value.trim();
+  const id=G('bf-id').value;
+  const f=G('bf-img').files[0];
+  if(!title||!content){toast('Judul dan konten wajib diisi','err');return;}
+
+  const pubBtn=document.querySelector('#m-blog-form .btn-p');
+  if(pubBtn){pubBtn.disabled=true;pubBtn.textContent='Publishing...';}
   try{
-    let img=id?BLOGS[id]?.imageUrl:'';if(f) img=await upImg(f);
-    await (id?db.ref('blogs/'+id):db.ref('blogs').push()).set({title,content,imageUrl:img,tags:bTags,author:UP?.displayName||'Admin',authorUID:CU.uid,createdAt:id?BLOGS[id]?.createdAt:Date.now(),updatedAt:Date.now()});
-    toast('Blog dipublish','ok');closeM('blog-form');
-    G('bf-title').value='';G('bf-content').value='';G('bf-id').value='';bTags=[];renderBTags();rstUp('bf-img','bf-img-p','bf-img-w');
+    let img=id&&BLOGS[id]?BLOGS[id].imageUrl:'';
+    if(f) img=await upImg(f);
+    const payload={title,content,imageUrl:img,tags:[...bTags],
+      author:UP?.displayName||'Admin',authorUID:CU?.uid||'',
+      createdAt:id&&BLOGS[id]?BLOGS[id].createdAt:Date.now(),updatedAt:Date.now()};
+    if(id){ await db.ref('blogs/'+id).update(payload); }
+    else   { await db.ref('blogs').push().set(payload); }
+    toast('Blog berhasil dipublish! 📝','ok');
+    closeM('blog-form');
+    G('bf-title').value='';G('bf-content').value='';G('bf-id').value='';
+    bTags=[];renderBTags();
+    rstUp('bf-img','bf-img-p','bf-img-w');
     loadAdmBlogs();
-  }catch(e){toast('Error: '+e.message,'err');}
+  }catch(e){
+    console.error('[saveBlog]',e);
+    toast('Gagal publish: '+e.message,'err');
+  }finally{
+    if(pubBtn){pubBtn.disabled=false;pubBtn.textContent='Publish';}
+  }
 }
 async function loadBlog(){
   const s=await db.ref('blogs').orderByChild('createdAt').once('value');BLOGS=s.val()||{};renderBlogGrid('blog-grid',BLOGS);
@@ -1121,15 +1150,48 @@ async function delBlog(id){if(!confirm('Hapus post?')) return;await db.ref('blog
 /* ── UPDATES ── */
 async function saveUpd(){
   if(!isSt&&!isOwn){toast('Akses ditolak','err');return;}
-  const platform=G('uf-platform').value.trim(),title=G('uf-title').value.trim(),version=G('uf-ver').value.trim(),content=G('uf-content').value.trim(),id=G('uf-id').value,f=G('uf-img').files[0];
-  if(!platform||!title||!content){toast('Platform, judul, detail wajib','err');return;}
+  const platform=G('uf-platform').value.trim();
+  const title=G('uf-title').value.trim();
+  const version=G('uf-ver').value.trim();
+  const content=G('uf-content').value.trim();
+  const id=G('uf-id').value;
+  const f=G('uf-img').files[0];
+
+  if(!platform||!title||!content){toast('Platform, judul, dan detail wajib diisi','err');return;}
+
+  // Disable tombol publish supaya tidak double-click
+  const pubBtn=document.querySelector('#m-upd-form .btn-p');
+  if(pubBtn){pubBtn.disabled=true;pubBtn.textContent='Menyimpan...';}
+
   try{
-    let img=id?UPDS[id]?.imageUrl:'';if(f) img=await upImg(f);
-    await (id?db.ref('updates/'+id):db.ref('updates').push()).set({platform,title,version,content,imageUrl:img,author:UP?.displayName||'Tim ExeRevers',authorUID:CU.uid,createdAt:id?UPDS[id]?.createdAt:Date.now(),updatedAt:Date.now()});
-    toast('Update dipublish','ok');closeM('upd-form');
-    ['uf-platform','uf-title','uf-ver','uf-content','uf-id'].forEach(x=>G(x).value='');rstUp('uf-img','uf-img-p','uf-img-w');
+    let img=id&&UPDS[id]?UPDS[id].imageUrl:'';
+    if(f) img=await upImg(f);
+
+    const payload={
+      platform, title, version, content, imageUrl:img,
+      author: UP?.displayName||'Tim ExeRevers',
+      authorUID: CU?.uid||'',
+      createdAt: id&&UPDS[id] ? UPDS[id].createdAt : Date.now(),
+      updatedAt: Date.now()
+    };
+
+    if(id){
+      await db.ref('updates/'+id).update(payload);
+    } else {
+      await db.ref('updates').push().set(payload);
+    }
+
+    toast('Update berhasil dipublish! 🚀','ok');
+    closeM('upd-form');
+    ['uf-platform','uf-title','uf-ver','uf-content','uf-id'].forEach(x=>G(x).value='');
+    rstUp('uf-img','uf-img-p','uf-img-w');
     loadAdmUpds();
-  }catch(e){toast('Error: '+e.message,'err');}
+  }catch(e){
+    console.error('[saveUpd]',e);
+    toast('Gagal publish: '+e.message,'err');
+  }finally{
+    if(pubBtn){pubBtn.disabled=false;pubBtn.textContent='Publish Update';}
+  }
 }
 async function loadUpdates(){
   const s=await db.ref('updates').orderByChild('createdAt').once('value');UPDS=s.val()||{};renderUpdList('upd-list',UPDS);
@@ -1159,8 +1221,23 @@ async function loadAdmUpds(){
   G('st-upds').textContent=Object.keys(UPDS).length;
 }
 function editUpd(id){
-  const u=UPDS[id];G('uf-platform').value=u.platform;G('uf-title').value=u.title;G('uf-ver').value=u.version||'';G('uf-content').value=u.content;G('uf-id').value=id;
-  if(u.imageUrl){G('uf-img-p').src=u.imageUrl;G('uf-img-p').style.display='block';G('uf-img-w').style.display='none';}
+  const u=UPDS[id];
+  if(!u){toast('Data update tidak ditemukan','err');return;}
+  G('uf-platform').value=u.platform||'';
+  G('uf-title').value=u.title||'';
+  G('uf-ver').value=u.version||'';
+  G('uf-content').value=u.content||'';
+  G('uf-id').value=id;
+  if(u.imageUrl){
+    G('uf-img-p').src=u.imageUrl;
+    G('uf-img-p').style.display='block';
+    G('uf-img-w').style.display='none';
+  } else {
+    rstUp('uf-img','uf-img-p','uf-img-w');
+  }
+  // Reset button state
+  const pubBtn=document.querySelector('#m-upd-form .btn-p');
+  if(pubBtn){pubBtn.disabled=false;pubBtn.textContent='Publish Update';}
   openM('upd-form');
 }
 async function delUpd(id){if(!confirm('Hapus update?')) return;await db.ref('updates/'+id).remove();toast('Dihapus','ok');loadAdmUpds();}

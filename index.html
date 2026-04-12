@@ -247,7 +247,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .mn-btn.on{color:var(--orange)}
   .nav-links{display:none}
   .aw{grid-template-columns:1fr}
-  .aside{display:none}
+  .aside{display:none!important}
+  /* Mobile admin menu shown as horizontal scrollable tab bar */
+  #mob-admin-nav{display:flex;overflow-x:auto;gap:6px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);-webkit-overflow-scrolling:touch}
+  #mob-admin-nav::-webkit-scrollbar{height:0}
   .pg{grid-template-columns:repeat(2,1fr);gap:10px}
   .bg{grid-template-columns:1fr}
   .ui{flex-direction:column}
@@ -256,6 +259,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
   .pt{flex-direction:column;text-align:center}
   .wrap{padding:0 16px}
 }
+@media(min-width:769px){#mob-admin-nav{display:none!important}}
 @media(min-width:769px){#mob-nav{display:none}}
 @media(max-width:480px){.pg{grid-template-columns:repeat(2,1fr);gap:8px}.hero{padding:48px 16px 40px}}
 </style>
@@ -362,6 +366,16 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
   <!-- ADMIN -->
   <div class="page" id="page-admin">
+    <!-- Mobile admin nav (visible on small screens) -->
+    <div id="mob-admin-nav">
+      <button class="btn btn-g btn-sm" onclick="aGo('dashboard',this)" style="flex-shrink:0">📊 Dashboard</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('categories',this)" style="flex-shrink:0">🏷️ Kategori</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('products',this)" style="flex-shrink:0">📦 Produk</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('blog-mgr',this)" style="flex-shrink:0">📝 Blog</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('updates-mgr',this)" style="flex-shrink:0">🚀 Updates</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('users-mgr',this)" style="flex-shrink:0">👥 Users</button>
+      <button class="btn btn-g btn-sm" onclick="aGo('purchases-mgr',this)" style="flex-shrink:0">💰 Pembelian</button>
+    </div>
     <div class="aw">
       <div class="aside">
         <div class="aside-lbl">Admin Panel</div>
@@ -696,7 +710,7 @@ function go(page){
   if(page==='blog') loadBlog();
   if(page==='updates') loadUpdates();
   if(page==='home') loadHome();
-  if(page==='admin') guardAdmin();
+  if(page==='admin'){ guardAdmin().then(()=>{ aGo('dashboard', document.querySelector('.al')); }); }
   if(page==='profile') loadProfile();
 }
 
@@ -708,12 +722,29 @@ auth.onAuthStateChanged(async u=>{
     try{
       const snap=await db.ref('users/'+u.uid).once('value');
       UP=snap.val()||null;
-      isSt=UP?.staff===true; isOwn=UP?.owner===true;
-      if(!UP?.username){ showSetup(); }
+      // Pastikan boolean bukan truthy/falsy biasa
+      isSt = UP && UP.staff === true;
+      isOwn = UP && UP.owner === true;
+      console.log('[Auth] uid:', u.uid, '| owner:', isOwn, '| staff:', isSt, '| username:', UP?.username||'(none)');
+      if(!UP || !UP.username){ showSetup(); }
       else{ closeM('auth'); renderNavIn(); }
     }catch(e){
-      UP=null; isSt=false; isOwn=false;
-      console.warn('Failed to load user profile:', e.message);
+      // Jika baca profil gagal (misal rules), coba fallback baca field kritis saja
+      console.warn('[Auth] Profile read failed:', e.message, '— trying fallback...');
+      try{
+        const ownerSnap = await db.ref('users/'+u.uid+'/owner').once('value');
+        const staffSnap = await db.ref('users/'+u.uid+'/staff').once('value');
+        const unameSnap = await db.ref('users/'+u.uid+'/username').once('value');
+        isOwn = ownerSnap.val() === true;
+        isSt  = staffSnap.val() === true;
+        console.log('[Auth] Fallback — owner:', isOwn, '| staff:', isSt);
+        if(!unameSnap.val()){ showSetup(); }
+        else{ closeM('auth'); renderNavIn(); }
+      }catch(e2){
+        console.error('[Auth] Fallback also failed:', e2.message);
+        UP=null; isSt=false; isOwn=false;
+        renderNavOut();
+      }
     }
     if(!authReady){ authReady=true; loadHome(); }
   } else {
@@ -723,9 +754,10 @@ auth.onAuthStateChanged(async u=>{
   }
 });
 function renderNavIn(){
+  const uname = UP?.username || CU?.displayName || 'Me';
   G('nav-r').innerHTML=`
     ${(isSt||isOwn)?`<button class="btn btn-o btn-sm" onclick="go('admin')">⚡ Admin</button>`:''}
-    <button class="btn btn-g btn-sm" onclick="go('profile')">@${UP.username}</button>
+    <button class="btn btn-g btn-sm" onclick="go('profile')">@${uname}</button>
     <button class="btn btn-o btn-sm" onclick="doOut()">Logout</button>`;
 }
 function renderNavOut(){
@@ -1159,7 +1191,15 @@ async function submitRating(){
 
 /* ── USERS ADMIN ── */
 async function loadAdmUsers(){
-  const s=await db.ref('users').once('value');const users=s.val()||{};
+  let users={};
+  try{
+    const s=await db.ref('users').once('value');
+    users=s.val()||{};
+  }catch(e){
+    toast('Gagal load users: '+e.message,'err');
+    console.error('[loadAdmUsers]',e);
+    return;
+  }
   const tb=G('users-tb');if(!tb) return;
   tb.innerHTML=Object.entries(users).map(([uid,u])=>`<tr>
     <td><img src="${u.photoURL||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=1c1c1c&color=fff`}" style="width:36px;height:36px;border-radius:50%;object-fit:cover;"></td>
@@ -1201,7 +1241,16 @@ async function savePurch(){
   }catch(e){toast('Error: '+e.message,'err');}
 }
 async function loadAdmPurchases(){
-  const s=await db.ref('purchases').orderByChild('createdAt').limitToLast(50).once('value');const data=s.val()||{};
+  let data={};
+  try{
+    const s=await db.ref('purchases').orderByChild('createdAt').limitToLast(50).once('value');
+    data=s.val()||{};
+  }catch(e){
+    console.warn('[loadAdmPurchases]',e.message);
+    const tb=G('purch-tb');
+    if(tb) tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--grey);padding:20px;">Tidak ada akses</td></tr>';
+    return;
+  }
   const tb=G('purch-tb');if(!tb) return;
   tb.innerHTML=Object.entries(data).reverse().map(([,p])=>`<tr>
     <td style="font-size:11px;color:var(--grey);">${p.userId?.substring(0,10)}...</td>
@@ -1217,23 +1266,47 @@ function fillPurchSel(){
 }
 
 /* ── ADMIN ── */
-function aGo(section,el){
+function aGo(section, el){
   document.querySelectorAll('.as').forEach(s=>s.classList.remove('on'));
   document.querySelectorAll('.al').forEach(l=>l.classList.remove('on'));
-  G('as-'+section)?.classList.add('on');el.classList.add('on');
-  if(section==='dashboard'){loadAdmProds();loadAdmBlogs();loadAdmUpds();loadAdmPurchases();loadAdmUsers();}
+  const sec = G('as-'+section);
+  if(sec) sec.classList.add('on');
+  if(el) el.classList.add('on');
+  if(section==='dashboard'){ loadAdmProds(); loadAdmBlogs(); loadAdmUpds(); loadAdmPurchases(); loadAdmUsers(); }
   if(section==='categories') loadCats();
-  if(section==='products'){loadCats();loadAdmProds();}
+  if(section==='products'){ loadCats(); loadAdmProds(); }
   if(section==='blog-mgr') loadAdmBlogs();
   if(section==='updates-mgr') loadAdmUpds();
   if(section==='users-mgr') loadAdmUsers();
-  if(section==='purchases-mgr'){loadAdmProds().then(fillPurchSel);loadAdmPurchases();}
+  if(section==='purchases-mgr'){ loadAdmProds().then(()=>fillPurchSel()); loadAdmPurchases(); }
 }
 async function guardAdmin(){
-  if(!CU){toast('Login dulu','err');go('home');return;}
-  if(!isSt&&!isOwn){toast('Akses ditolak','err');go('home');return;}
-  await loadCats();await loadAdmProds();
-  const ps=await db.ref('purchases').once('value');G('st-purch').textContent=Object.keys(ps.val()||{}).length;
+  if(!CU){ toast('Login dulu','err'); go('home'); return; }
+
+  // Re-check role langsung dari DB (jangan hanya andalkan state lokal)
+  try{
+    const ownerSnap = await db.ref('users/'+CU.uid+'/owner').once('value');
+    const staffSnap = await db.ref('users/'+CU.uid+'/staff').once('value');
+    isOwn = ownerSnap.val() === true;
+    isSt  = staffSnap.val() === true;
+    console.log('[guardAdmin] Re-checked — owner:', isOwn, '| staff:', isSt);
+  }catch(e){
+    console.warn('[guardAdmin] Role re-check failed:', e.message);
+  }
+
+  if(!isSt && !isOwn){
+    toast('Akses ditolak — kamu bukan staff/owner','err');
+    go('home');
+    return;
+  }
+
+  renderNavIn(); // Refresh nav (tampilkan tombol admin)
+  await loadCats();
+  await loadAdmProds();
+  try{
+    const ps = await db.ref('purchases').once('value');
+    G('st-purch').textContent = Object.keys(ps.val()||{}).length;
+  }catch(e){ G('st-purch').textContent = '?'; }
 }
 
 /* ── HOME ── */

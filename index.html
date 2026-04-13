@@ -217,6 +217,13 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.02)
 .spin{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--orange);border-radius:50%;animation:sp .7s linear infinite;margin:34px auto}
 @keyframes sp{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:48px 20px;color:var(--grey)}.ei{font-size:38px;margin-bottom:8px;opacity:.5}
+/* TRADE CHAT */
+#tc-messages{scroll-behavior:smooth}
+#tc-messages::-webkit-scrollbar{width:4px}
+#tc-messages::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.chat-bubble-mine{background:var(--orange);color:#fff;border-radius:12px 12px 4px 12px;padding:8px 12px;font-size:13px;line-height:1.5;word-break:break-word;max-width:70%}
+.chat-bubble-other{background:var(--bg3);color:var(--white);border-radius:12px 12px 12px 4px;padding:8px 12px;font-size:13px;line-height:1.5;word-break:break-word;max-width:70%}
+.chat-bubble-sys{text-align:center;font-size:11px;color:var(--grey2);padding:4px 10px;background:var(--bg3);border-radius:10px;margin:2px auto;max-width:88%}
 .info-box{background:rgba(255,107,0,.08);border:1px solid rgba(255,107,0,.2);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--grey)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row{display:flex;gap:8px;flex-wrap:wrap}
@@ -310,15 +317,90 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.02)
 
 <!-- ═══ TRADING ═══ -->
 <div class="page" id="page-trending">
-  <div class="ph"><div class="ph-ey" id="t-trade-ey">Trade Requests</div><div class="ph-ttl" id="t-trade-ttl">TRADING</div></div>
+  <div class="ph">
+    <div class="ph-ey" id="t-trade-ey">Trade Marketplace</div>
+    <div class="ph-ttl" id="t-trade-ttl">TRADING</div>
+  </div>
   <div class="wrap"><div class="sec">
-    <div class="fr" style="justify-content:space-between;">
-      <div class="sb"><span style="color:var(--grey2)">🔍</span><input id="trade-q" oninput="filterTrades()" style="width:100%"></div>
-      <button class="btn btn-p" onclick="openTradeForm()" id="t-posttrade">+ Post Trade Request</button>
+    <!-- Trade tabs -->
+    <div class="tabs" style="margin-bottom:16px;">
+      <div class="tb on" onclick="tradePubTab('browse',this)" id="tt-browse">Browse Trades</div>
+      <div class="tb" onclick="tradePubTab('mytrades',this)" id="tt-mine">My Trades</div>
+      <div class="tb" onclick="tradePubTab('requests',this)" id="tt-requests">Incoming Requests <span id="req-badge" style="background:var(--red);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;display:none;">0</span></div>
+      <div class="tb" onclick="tradePubTab('history',this)" id="tt-history">History</div>
     </div>
-    <div id="trade-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:13px;"><div class="spin"></div></div>
+
+    <!-- BROWSE -->
+    <div id="tp-browse">
+      <div class="fr" style="justify-content:space-between;">
+        <div class="sb"><span style="color:var(--grey2)">🔍</span><input id="trade-q" oninput="filterTrades()" style="width:100%"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <select class="fc2" id="trade-game-filter" onchange="filterTrades()" style="width:auto;padding:7px 10px;">
+            <option value="">All Games</option>
+            <option value="Roblox">Roblox</option>
+            <option value="Minecraft">Minecraft</option>
+            <option value="Other">Other</option>
+          </select>
+          <button class="btn btn-p" onclick="openTradeForm()" id="t-posttrade">+ Post Trade</button>
+        </div>
+      </div>
+      <div id="trade-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;"><div class="spin"></div></div>
+    </div>
+
+    <!-- MY TRADES -->
+    <div id="tp-mytrades" style="display:none;">
+      <div id="my-trades-list"><div class="spin"></div></div>
+    </div>
+
+    <!-- INCOMING REQUESTS -->
+    <div id="tp-requests" style="display:none;">
+      <div id="incoming-req-list"><div class="spin"></div></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div id="tp-history" style="display:none;">
+      <div id="trade-history-list"><div class="spin"></div></div>
+    </div>
   </div></div>
 </div>
+
+<!-- TRADE CHAT MODAL -->
+<div class="mo" id="m-trade-chat"><div class="md md-xl" style="max-width:680px;display:flex;flex-direction:column;height:90vh;">
+  <div class="md-hd" style="flex-shrink:0;">
+    <div>
+      <div class="md-ttl" id="tc-title">Trade Chat</div>
+      <div id="tc-status" style="font-size:12px;color:var(--grey);margin-top:2px;"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn btn-grn btn-sm" id="tc-complete-btn" onclick="completeTrade()" style="display:none;">✅ Mark Complete</button>
+      <button class="btn btn-d btn-sm" id="tc-cancel-btn" onclick="cancelTrade()" style="display:none;">Cancel Trade</button>
+      <button class="md-cl" onclick="closeM('trade-chat')">✕</button>
+    </div>
+  </div>
+
+  <!-- Trade info bar -->
+  <div id="tc-trade-info" style="padding:10px 17px;background:var(--bg3);border-bottom:1px solid var(--border);flex-shrink:0;font-size:12px;"></div>
+
+  <!-- Messages -->
+  <div id="tc-messages" style="flex:1;overflow-y:auto;padding:14px 17px;display:flex;flex-direction:column;gap:8px;"></div>
+
+  <!-- Chat system messages area -->
+  <div id="tc-sys" style="padding:0 17px 8px;flex-shrink:0;"></div>
+
+  <!-- Input -->
+  <div style="padding:12px 17px;border-top:1px solid var(--border);flex-shrink:0;">
+    <div style="display:flex;gap:8px;">
+      <input class="fc2" id="tc-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMsg();}" style="flex:1;">
+      <button class="btn btn-p" onclick="sendChatMsg()">Send</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+      <button class="btn btn-g btn-xs" onclick="sendQuickMsg('friend-request')">👥 Friend Req</button>
+      <button class="btn btn-g btn-xs" onclick="sendQuickMsg('private-server')">🔒 Private Server</button>
+      <button class="btn btn-g btn-xs" onclick="sendQuickMsg('agree')">✅ I Agree</button>
+      <button class="btn btn-d btn-xs" onclick="reportTradeUser()">🚩 Report</button>
+    </div>
+  </div>
+</div></div>
 
 <!-- ═══ BLOG ═══ -->
 <div class="page" id="page-blog">
@@ -685,22 +767,79 @@ tr:last-child td{border-bottom:none}tr:hover td{background:rgba(255,255,255,.02)
 
 <!-- TRADE FORM -->
 <div class="mo" id="m-trade-form"><div class="md md-lg">
-  <div class="md-hd"><div class="md-ttl" id="t-trade-form-ttl">Post Trade Request</div><button class="md-cl" onclick="closeM('trade-form')">✕</button></div>
+  <div class="md-hd"><div class="md-ttl" id="t-trade-form-ttl">Post Trade</div><button class="md-cl" onclick="closeM('trade-form')">✕</button></div>
   <div class="md-bd">
+    <!-- Anti-scam warning -->
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;">
+      <div style="font-family:var(--fc);font-weight:700;font-size:13px;color:var(--red);margin-bottom:6px;">⚠️ Anti-Scam Warning</div>
+      <div style="font-size:12px;color:var(--grey);line-height:1.6;">
+        • Never send items first without receiving the agreed items.<br>
+        • Scammers will be <strong style="color:var(--red);">permanently banned</strong> automatically.<br>
+        • All trade chats are logged for moderation.<br>
+        • Report suspicious behavior immediately.
+      </div>
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="tf-rules-check" style="width:15px;height:15px;accent-color:var(--orange);">
+        <label for="tf-rules-check" style="font-size:12px;cursor:pointer;color:var(--grey);">I understand and agree to the anti-scam rules</label>
+      </div>
+    </div>
     <div class="fg">
-      <label class="fl" id="t-trade-photos">Your Item Photos (1-2) *</label>
+      <label class="fl" id="t-trade-photos">Item Photos (1-2) *</label>
       <div class="multi-uz" onclick="document.getElementById('tf-imgs').click()">
-        <div style="font-size:22px;">📷</div><div class="uz-t" id="t-trade-upload">Upload 1-2 photos of your item</div>
+        <div style="font-size:22px;">📷</div><div class="uz-t" id="t-trade-upload">Upload 1-2 photos</div>
         <div class="multi-previews" id="tf-imgs-prev"></div>
       </div>
       <input type="file" id="tf-imgs" accept="image/*" multiple style="display:none;" onchange="handleMultiImg(this,'tf-imgs-prev',2)">
     </div>
-    <div class="fg"><label class="fl" id="t-trade-have">Item You're Trading *</label><input class="fc2" id="tf-have" placeholder="e.g. Brainrot Pet x3..."></div>
-    <div class="fg"><label class="fl" id="t-trade-want">Item You Want *</label><input class="fc2" id="tf-want" placeholder="e.g. Grow a Garden Pet..."></div>
-    <div class="fg"><label class="fl" id="t-trade-game">Game / Platform *</label><input class="fc2" id="tf-game" placeholder="Roblox..."></div>
-    <div class="fg"><label class="fl" id="t-trade-notes">Notes</label><textarea class="fc2" id="tf-notes"></textarea></div>
-    <div class="fg"><label class="fl" id="t-trade-wa">Your WA (optional)</label><input class="fc2" id="tf-wa" placeholder="628..."></div>
+    <div class="fg"><label class="fl" id="t-trade-have">I'm offering *</label><input class="fc2" id="tf-have" placeholder="e.g. Brainrot Pet x3..."></div>
+    <div class="fg"><label class="fl" id="t-trade-want">I want *</label><input class="fc2" id="tf-want" placeholder="e.g. Grow a Garden Pet..."></div>
+    <div class="fg"><label class="fl" id="t-trade-game">Game / Platform *</label>
+      <select class="fc2" id="tf-game">
+        <option value="">Select game...</option>
+        <option value="Roblox">Roblox</option>
+        <option value="Minecraft">Minecraft</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl" id="t-trade-notes">Additional Notes</label><textarea class="fc2" id="tf-notes" placeholder="Describe your item in more detail..."></textarea></div>
+    <input type="hidden" id="tf-edit-id">
     <button class="btn btn-p btn-bl" onclick="submitTrade()" id="tf-btn">Post Trade</button>
+  </div>
+</div></div>
+
+<!-- TRADE REQUEST MODAL (when clicking Trade on a post) -->
+<div class="mo" id="m-trade-req"><div class="md">
+  <div class="md-hd"><div class="md-ttl">Send Trade Request</div><button class="md-cl" onclick="closeM('trade-req')">✕</button></div>
+  <div class="md-bd">
+    <div id="tr-target-info" style="background:var(--bg3);border-radius:var(--r);padding:12px;margin-bottom:14px;"></div>
+    <div class="fg"><label class="fl">Your Roblox/Game Username *</label><input class="fc2" id="tr-username" placeholder="Your in-game username..."></div>
+    <div class="fg"><label class="fl">What you're offering *</label><input class="fc2" id="tr-offer" placeholder="Items you will give..."></div>
+    <div class="fg"><label class="fl">What you want *</label><input class="fc2" id="tr-want" placeholder="Items you want in return..."></div>
+    <div class="fg"><label class="fl">Message (optional)</label><textarea class="fc2" id="tr-msg" placeholder="Introduce yourself..."></textarea></div>
+    <input type="hidden" id="tr-trade-id">
+    <button class="btn btn-p btn-bl" onclick="sendTradeRequest()" id="tr-btn">Send Trade Request</button>
+  </div>
+</div></div>
+
+<!-- REPORT MODAL -->
+<div class="mo" id="m-report"><div class="md" style="max-width:400px;">
+  <div class="md-hd"><div class="md-ttl" style="color:var(--red);">🚩 Report User</div><button class="md-cl" onclick="closeM('report')">✕</button></div>
+  <div class="md-bd">
+    <div class="fg">
+      <label class="fl">Reason *</label>
+      <select class="fc2" id="report-reason">
+        <option value="">Select reason...</option>
+        <option value="scam">Scam / Fraud</option>
+        <option value="fake">Fake items / misleading</option>
+        <option value="harassment">Harassment</option>
+        <option value="spam">Spam</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Details</label><textarea class="fc2" id="report-detail" placeholder="Describe what happened..."></textarea></div>
+    <input type="hidden" id="report-target-uid">
+    <input type="hidden" id="report-trade-session">
+    <button class="btn btn-d btn-bl" onclick="submitReport()">Submit Report</button>
   </div>
 </div></div>
 
@@ -758,7 +897,7 @@ firebase.initializeApp({
   messagingSenderId:"864680081163",
   appId:"1:864680081163:web:1e1d743e607d0852df940e",
   measurementId:"G-YTW0JFGG7X",
-  databaseURL:"https://exereversdb-default-rtdb.asia-southeast1.firebasedatabase.app"
+  databaseURL:"https://exereversdb-default-rtdb.firebaseio.com"
 });
 const auth=firebase.auth(),db=firebase.database();
 const IMGBB="0e2d86abcabc260627d79b0609944bf3";
@@ -897,8 +1036,23 @@ function toast(msg,type='inf'){
 
 // ─── MODAL ───
 function openM(id){G('m-'+id)?.classList.add('on');}
-function closeM(id){G('m-'+id)?.classList.remove('on');}
-document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('on');}));
+function closeM(id){
+  G('m-'+id)?.classList.remove('on');
+  if(id==='trade-chat' && chatListener){
+    try{ db.ref(`tradeChats/${currentTradeSession}/messages`).off('child_added', chatListener); }catch(e){}
+    chatListener=null; currentTradeSession=null;
+  }
+}
+document.querySelectorAll('.mo').forEach(o=>o.addEventListener('click',e=>{
+  if(e.target===o){
+    o.classList.remove('on');
+    // Unsubscribe chat listener when closing chat modal
+    if(o.id==='m-trade-chat' && chatListener){
+      db.ref(`tradeChats/${currentTradeSession}/messages`).off('child_added', chatListener);
+      chatListener=null; currentTradeSession=null;
+    }
+  }
+}));
 
 // ─── LIGHTBOX ───
 let lbImgs=[],lbIdx=0;
@@ -993,7 +1147,7 @@ auth.onAuthStateChanged(async u=>{
       const snap=await db.ref('users/'+u.uid).once('value');
       UP=snap.val()||null;isSt=UP?.staff===true;isOwn=UP?.owner===true;
       if(!UP?.username)showSetup();
-      else{closeM('auth');renderNavIn();}
+      else{closeM('auth');renderNavIn();setTimeout(checkIncomingBadge,1000);}
     }catch(e){
       console.warn('[Auth]',e.message);
       try{
@@ -1538,67 +1692,609 @@ function editUpd(id){
 }
 async function delUpd(id){if(!confirm('Delete?'))return;await db.ref('updates/'+id).remove();toast('Deleted','ok');loadAdmUpds();}
 
-// ─── TRADING ───
-function openTradeForm(){
-  if(!CU){toast(currentLang==='id'?'Login dulu':'Login first','err');return;}
+// ─── TRADING (Full System) ───
+let currentTradeSession = null; // active chat session ID
+let chatListener = null;        // firebase realtime listener
+
+/* ── Public tab switcher ── */
+function tradePubTab(tab, el) {
+  document.querySelectorAll('#page-trending .tb').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  ['browse','mytrades','requests','history'].forEach(t => {
+    const el2 = G('tp-'+t); if(el2) el2.style.display = 'none';
+  });
+  G('tp-'+tab).style.display = 'block';
+  if(tab === 'browse')   loadTrades();
+  if(tab === 'mytrades') loadMyTradesList();
+  if(tab === 'requests') loadIncomingRequests();
+  if(tab === 'history')  loadTradeHistory();
+}
+
+/* ── Open Trade Form ── */
+function openTradeForm(editId) {
+  if(!CU) { toast(currentLang==='id'?'Login dulu':'Login first','err'); return; }
   clearMulti('tf-imgs','tf-imgs-prev');
-  ['tf-have','tf-want','tf-game','tf-notes','tf-wa'].forEach(x=>G(x).value='');
+  ['tf-have','tf-want','tf-notes'].forEach(x => G(x).value = '');
+  G('tf-game').value = '';
+  G('tf-edit-id').value = editId || '';
+  G('tf-rules-check').checked = false;
+
+  if(editId && TRADES[editId]) {
+    const t = TRADES[editId];
+    G('tf-have').value = t.have || '';
+    G('tf-want').value = t.want || '';
+    G('tf-game').value = t.game || '';
+    G('tf-notes').value = t.notes || '';
+    // show existing images
+    const prev = G('tf-imgs-prev');
+    const imgs = t.images || [];
+    if(prev && imgs.length) {
+      prev.innerHTML = imgs.map((url,i) =>
+        `<div class="mpw"><img class="mpi" src="${url}" onclick="openLB(${JSON.stringify(imgs)},${i})"></div>`
+      ).join('');
+    }
+    G('tf-rules-check').checked = true;
+  }
   openM('trade-form');
 }
-async function submitTrade(){
-  if(!CU){toast('Login first','err');return;}
-  const have=G('tf-have').value.trim(),want=G('tf-want').value.trim(),game=G('tf-game').value.trim(),notes=G('tf-notes').value.trim(),wa=G('tf-wa').value.trim();
-  if(!have||!want||!game){toast('Item trading, item wanted, and game required','err');return;}
-  if(!(multiImgs['tf-imgs']||[]).length){toast('At least 1 photo required','err');return;}
-  const btn=G('tf-btn');btn.disabled=true;btn.textContent='Posting...';
-  try{
-    const imgs=await uploadMulti('tf-imgs');
-    await db.ref('trades').push({have,want,game,notes,wa,images:imgs,userId:CU.uid,userName:UP?.displayName||UP?.username||'User',createdAt:Date.now(),status:'open'});
-    toast('Trade posted! 🔄','ok');closeM('trade-form');loadTrades();
-  }catch(e){toast('Error: '+e.message,'err');}
-  finally{btn.disabled=false;btn.textContent='Post Trade';}
+
+/* ── Submit / Edit Trade ── */
+async function submitTrade() {
+  if(!CU) { toast('Login first','err'); return; }
+  if(!G('tf-rules-check').checked) { toast('Please agree to anti-scam rules first','err'); return; }
+
+  const have  = G('tf-have').value.trim();
+  const want  = G('tf-want').value.trim();
+  const game  = G('tf-game').value;
+  const notes = G('tf-notes').value.trim();
+  const editId= G('tf-edit-id').value;
+
+  if(!have||!want||!game) { toast('Offering, wanted item, and game required','err'); return; }
+
+  const hasNew = (multiImgs['tf-imgs']||[]).length > 0;
+  if(!editId && !hasNew) { toast('At least 1 photo required','err'); return; }
+
+  const btn = G('tf-btn'); btn.disabled = true; btn.textContent = 'Posting...';
+  try {
+    let imgs = editId && TRADES[editId] ? TRADES[editId].images||[] : [];
+    if(hasNew) imgs = await uploadMulti('tf-imgs');
+
+    const payload = {
+      have, want, game, notes, images: imgs,
+      userId: CU.uid,
+      userName: UP?.displayName || UP?.username || 'User',
+      userUsername: UP?.username || '',
+      createdAt: editId && TRADES[editId] ? TRADES[editId].createdAt : Date.now(),
+      updatedAt: Date.now(),
+      status: 'open',  // open | ongoing | completed | cancelled
+      reportCount: editId && TRADES[editId] ? TRADES[editId].reportCount||0 : 0
+    };
+
+    if(editId) {
+      await db.ref('trades/'+editId).update(payload);
+      toast('Trade updated!','ok');
+    } else {
+      await db.ref('trades').push().set(payload);
+      toast('Trade posted! 🔄','ok');
+    }
+    closeM('trade-form');
+    loadTrades();
+  } catch(e) { console.error(e); toast('Error: '+e.message,'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Post Trade'; }
 }
-async function loadTrades(){
-  const s=await db.ref('trades').orderByChild('createdAt').limitToLast(50).once('value');TRADES=s.val()||{};filterTrades();
+
+/* ── Load + Render Trades ── */
+async function loadTrades() {
+  const s = await db.ref('trades').orderByChild('createdAt').limitToLast(60).once('value');
+  TRADES = s.val() || {};
+  filterTrades();
 }
-function filterTrades(){
-  const q=G('trade-q')?.value.toLowerCase()||'';
-  const f=Object.fromEntries(Object.entries(TRADES).filter(([,t])=>t.status==='open'&&(!q||t.have.toLowerCase().includes(q)||t.want.toLowerCase().includes(q)||t.game.toLowerCase().includes(q))));
-  renderTrades(f);
+
+function filterTrades() {
+  const q    = G('trade-q')?.value.toLowerCase() || '';
+  const game = G('trade-game-filter')?.value || '';
+  const filtered = Object.fromEntries(
+    Object.entries(TRADES).filter(([,t]) =>
+      t.status === 'open' &&
+      (!q    || t.have.toLowerCase().includes(q) || t.want.toLowerCase().includes(q) || t.userName.toLowerCase().includes(q)) &&
+      (!game || t.game === game)
+    )
+  );
+  renderTrades(filtered);
 }
-function renderTrades(trades){
-  const el=G('trade-list');if(!el)return;
-  const ent=Object.entries(trades).reverse();
-  if(!ent.length){el.innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="ei">🔄</div><div>${currentLang==='id'?'Belum ada trade':'No trade requests'}</div></div>`;return;}
-  el.innerHTML=ent.map(([id,t])=>{
-    const imgs=t.images||[];
-    const isMine=CU&&t.userId===CU.uid;
-    const waBtn=t.wa?`<a href="https://wa.me/${t.wa}?text=${encodeURIComponent(`Hi, interested in: ${t.have}`)}" target="_blank" class="btn btn-sm" style="background:#25D366;color:#fff;">💬 WA</a>`:'';
-    return`<div class="trade-card">
-      <div class="trade-imgs">${imgs.slice(0,2).map((u,i)=>`<img class="trade-img" src="${u}" onclick="openLB(${JSON.stringify(imgs)},${i})">`).join('')}</div>
-      <div style="font-family:var(--fc);font-weight:700;font-size:17px;margin-bottom:3px;">${t.have}</div>
-      <div style="font-size:13px;margin-bottom:8px;">${currentLang==='id'?'Mau:':'Wants:'} <strong style="color:var(--orange);">${t.want}</strong></div>
-      <div style="color:var(--grey);font-size:12px;margin-bottom:10px;">🎮 ${t.game} · ${t.userName} · ${ago(t.createdAt)}</div>
-      ${t.notes?`<div style="color:var(--grey2);font-size:12px;margin-bottom:10px;">${t.notes}</div>`:''}
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${waBtn}
-        ${isMine?`<button class="btn btn-d btn-xs" onclick="delTrade('${id}')">${currentLang==='id'?'Hapus':'Delete'}</button>`:''}
+
+function renderTrades(trades) {
+  const el = G('trade-list'); if(!el) return;
+  const ent = Object.entries(trades).reverse();
+  if(!ent.length) {
+    el.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="ei">🔄</div><div>${currentLang==='id'?'Belum ada trade':'No trade requests'}</div></div>`;
+    return;
+  }
+  el.innerHTML = ent.map(([id,t]) => tradeCard(id,t)).join('');
+}
+
+function tradeCard(id, t, showActions=true) {
+  const imgs = t.images || [];
+  const isMine = CU && t.userId === CU.uid;
+  const statusColor = { open:'bd-g', ongoing:'bd-b', completed:'bd-y', cancelled:'bd-r' };
+  return `<div class="trade-card" id="tc-card-${id}">
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-family:var(--fc);font-weight:700;font-size:13px;">@${t.userUsername||t.userName}</div>
+        <span class="bd ${statusColor[t.status]||'bd-w'}">${t.status||'open'}</span>
+      </div>
+      <div style="font-size:10px;color:var(--grey2);">${ago(t.createdAt)}</div>
+    </div>
+    ${imgs.length ? `<div class="trade-imgs">${imgs.slice(0,2).map((u,i)=>`<img class="trade-img" src="${u}" onclick="openLB(${JSON.stringify(imgs)},${i})">`).join('')}</div>` : ''}
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;flex:1;min-width:100px;">
+        <div style="font-size:10px;color:var(--orange);font-family:var(--fc);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;">Offering</div>
+        <div style="font-size:13px;font-weight:600;">${t.have}</div>
+      </div>
+      <div style="color:var(--orange);font-size:20px;flex-shrink:0;">⇄</div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;flex:1;min-width:100px;">
+        <div style="font-size:10px;color:var(--blue);font-family:var(--fc);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:2px;">Wants</div>
+        <div style="font-size:13px;font-weight:600;">${t.want}</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:5px;margin-bottom:8px;">
+      <span class="bd bd-w">🎮 ${t.game}</span>
+    </div>
+    ${t.notes ? `<div style="color:var(--grey);font-size:12px;margin-bottom:10px;line-height:1.5;">${t.notes}</div>` : ''}
+    ${showActions ? `<div style="display:flex;gap:6px;flex-wrap:wrap;">
+      ${!isMine && t.status==='open' ? `<button class="btn btn-p btn-sm" onclick="openTradeReq('${id}')">🔄 Trade</button>` : ''}
+      ${isMine ? `<button class="btn btn-o btn-sm" onclick="openTradeForm('${id}')">✏️ Edit</button>` : ''}
+      ${isMine && t.status==='open' ? `<button class="btn btn-d btn-xs" onclick="cancelMyTrade('${id}')">Cancel</button>` : ''}
+      ${!isMine ? `<button class="btn btn-g btn-xs" onclick="openReportModal('${id}',null)">🚩</button>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+/* ── Open Trade Request ── */
+function openTradeReq(tradeId) {
+  if(!CU) { toast('Login first','err'); return; }
+  const t = TRADES[tradeId]; if(!t) return;
+  G('tr-trade-id').value = tradeId;
+  G('tr-username').value = ''; G('tr-offer').value = ''; G('tr-want').value = ''; G('tr-msg').value = '';
+  G('tr-target-info').innerHTML = `
+    <div style="font-family:var(--fc);font-weight:700;font-size:14px;margin-bottom:4px;">${t.userName}'s Trade</div>
+    <div style="font-size:12px;color:var(--grey);">
+      They offer: <strong style="color:var(--white);">${t.have}</strong><br>
+      They want: <strong style="color:var(--orange);">${t.want}</strong>
+    </div>`;
+  G('tr-want').value = t.have; // auto-fill what they want = what they offer
+  openM('trade-req');
+}
+
+/* ── Send Trade Request ── */
+async function sendTradeRequest() {
+  if(!CU) { toast('Login first','err'); return; }
+  const tradeId  = G('tr-trade-id').value;
+  const username = G('tr-username').value.trim();
+  const offer    = G('tr-offer').value.trim();
+  const want     = G('tr-want').value.trim();
+  const msg      = G('tr-msg').value.trim();
+
+  if(!username||!offer||!want) { toast('Username, offer and want are required','err'); return; }
+
+  const trade = TRADES[tradeId]; if(!trade) return;
+  if(trade.userId === CU.uid) { toast('Cannot trade with yourself','err'); return; }
+
+  const btn = G('tr-btn'); btn.disabled = true; btn.textContent = 'Sending...';
+  try {
+    // Create a trade session (chat room)
+    const sessionData = {
+      tradeId,
+      tradeOwner: { uid: trade.userId, name: trade.userName, username: trade.userUsername || trade.userName },
+      requester:  { uid: CU.uid, name: UP?.displayName||'User', username: UP?.username||'', gameUsername: username },
+      tradeOffer: { requesterOffers: offer, requesterWants: want },
+      originalTrade: { have: trade.have, want: trade.want, game: trade.game },
+      status: 'pending',   // pending | ongoing | completed | cancelled
+      createdAt: Date.now(),
+      message: msg
+    };
+    const ref = await db.ref('tradeSessions').push(sessionData);
+
+    // Mark trade as ongoing
+    await db.ref('trades/'+tradeId).update({ status: 'ongoing', activeSession: ref.key });
+
+    // Send first message in chat
+    await db.ref(`tradeChats/${ref.key}/messages`).push({
+      type: 'system',
+      text: `Trade request sent by ${UP?.displayName||'User'}. Offering: "${offer}" for "${want}". Game username: ${username}`,
+      ts: Date.now()
+    });
+    if(msg) {
+      await db.ref(`tradeChats/${ref.key}/messages`).push({
+        uid: CU.uid, name: UP?.displayName||'User',
+        text: msg, ts: Date.now(), type: 'user'
+      });
+    }
+
+    toast('Trade request sent! 🔄','ok');
+    closeM('trade-req');
+    // Open chat immediately
+    openTradeChat(ref.key, sessionData);
+  } catch(e) { console.error(e); toast('Error: '+e.message,'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Send Trade Request'; }
+}
+
+/* ── Open Trade Chat ── */
+async function openTradeChat(sessionId, sessionData) {
+  if(!CU) { toast('Login first','err'); return; }
+  currentTradeSession = sessionId;
+
+  // Load if not passed
+  if(!sessionData) {
+    const s = await db.ref('tradeSessions/'+sessionId).once('value');
+    sessionData = s.val(); if(!sessionData) return;
+  }
+
+  const isOwner = CU.uid === sessionData.tradeOwner.uid;
+  const other   = isOwner ? sessionData.requester : sessionData.tradeOwner;
+
+  G('tc-title').textContent = `Trade with ${other.name}`;
+  G('tc-status').textContent = `Status: ${sessionData.status} • Session: ${sessionId.slice(0,8)}...`;
+
+  // Trade info bar
+  G('tc-trade-info').innerHTML = `
+    <div style="display:flex;gap:14px;flex-wrap:wrap;">
+      <div><span style="color:var(--grey);">Original:</span> <strong>${sessionData.originalTrade.have}</strong> ⇄ <strong>${sessionData.originalTrade.want}</strong></div>
+      <div><span style="color:var(--grey);">Request:</span> <strong>${sessionData.tradeOffer.requesterOffers}</strong> for <strong>${sessionData.tradeOffer.requesterWants}</strong></div>
+      <div><span style="color:var(--grey);">Game:</span> ${sessionData.originalTrade.game}</div>
+    </div>`;
+
+  // Show complete / cancel buttons based on role & status
+  const compBtn = G('tc-complete-btn');
+  const cancelBtn = G('tc-cancel-btn');
+  if(sessionData.status === 'pending' || sessionData.status === 'ongoing') {
+    compBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+  } else {
+    compBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+  }
+
+  openM('trade-chat');
+  G('tc-messages').innerHTML = '';
+
+  // Subscribe realtime
+  if(chatListener) chatListener(); // unsubscribe previous
+  chatListener = db.ref(`tradeChats/${sessionId}/messages`).orderByChild('ts')
+    .on('child_added', snap => {
+      const msg = snap.val(); if(!msg) return;
+      appendChatMsg(msg);
+      // auto-scroll
+      const el = G('tc-messages');
+      el.scrollTop = el.scrollHeight;
+    });
+}
+
+function appendChatMsg(msg) {
+  const el = G('tc-messages'); if(!el) return;
+  const isMine = CU && msg.uid === CU.uid;
+  const isSystem = msg.type === 'system';
+
+  if(isSystem) {
+    el.innerHTML += `<div style="text-align:center;font-size:11px;color:var(--grey2);padding:4px 8px;background:var(--bg3);border-radius:10px;margin:2px auto;max-width:85%;">${msg.text}</div>`;
+    return;
+  }
+
+  el.innerHTML += `
+    <div style="display:flex;flex-direction:${isMine?'row-reverse':'row'};gap:8px;align-items:flex-end;">
+      <div style="flex-shrink:0;width:28px;height:28px;background:var(--bg3);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;">
+        ${isMine ? '👤' : '🧑'}
+      </div>
+      <div style="max-width:70%;">
+        ${!isMine ? `<div style="font-size:10px;color:var(--grey2);margin-bottom:2px;">${msg.name||'User'}</div>` : ''}
+        <div style="background:${isMine?'var(--orange)':'var(--bg3)'};color:${isMine?'#fff':'var(--white)'};border-radius:${isMine?'12px 12px 4px 12px':'12px 12px 12px 4px'};padding:8px 12px;font-size:13px;line-height:1.5;word-break:break-word;">
+          ${escHtml(msg.text)}
+        </div>
+        <div style="font-size:10px;color:var(--grey2);margin-top:2px;text-align:${isMine?'right':'left'};">${ago(msg.ts)}</div>
       </div>
     </div>`;
-  }).join('');
 }
-async function delTrade(id){if(!confirm('Delete?'))return;await db.ref('trades/'+id).remove();toast('Deleted','ok');loadTrades();}
-async function loadTradeMgr(){
-  const s=await db.ref('trades').once('value');const el=G('trade-mgr-list');if(!el)return;
-  const data=s.val()||{};
-  el.innerHTML=Object.entries(data).reverse().map(([id,t])=>`
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-      <div>
-        <div style="font-family:var(--fc);font-weight:700;font-size:15px;">${t.have} → ${t.want}</div>
-        <div style="color:var(--grey);font-size:11px;">${t.userName} · ${t.game} · ${ago(t.createdAt)} · <span class="bd ${t.status==='open'?'bd-g':'bd-r'}">${t.status}</span></div>
-      </div>
-      <button class="btn btn-d btn-xs" onclick="delTrade('${id}')">Del</button>
-    </div>`).join('')||`<div class="empty"><div>${currentLang==='id'?'Tidak ada trade':'No trades'}</div></div>`;
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+async function sendChatMsg() {
+  const txt = G('tc-input').value.trim(); if(!txt) return;
+  if(!currentTradeSession || !CU) return;
+  G('tc-input').value = '';
+
+  // Scam detection: simple keyword check
+  const scamWords = ['send first','i go first','trust me','100% legit','no scam i promise','give me first'];
+  const lower = txt.toLowerCase();
+  const isScammy = scamWords.some(w => lower.includes(w));
+
+  await db.ref(`tradeChats/${currentTradeSession}/messages`).push({
+    uid: CU.uid, name: UP?.displayName||'User',
+    text: txt, ts: Date.now(), type: 'user',
+    flagged: isScammy
+  });
+
+  if(isScammy) {
+    toast('⚠️ Message flagged for review — avoid suspicious phrases','inf');
+    // Log flag for moderation
+    await db.ref(`tradeFlags/${currentTradeSession}`).push({
+      uid: CU.uid, msg: txt, ts: Date.now(), reason: 'auto-scam-detect'
+    });
+  }
+}
+
+async function sendQuickMsg(type) {
+  if(!currentTradeSession || !CU) return;
+  const msgs = {
+    'friend-request': `Hi! Please send me a friend request in-game: ${UP?.username||'my username'}`,
+    'private-server': 'I can share a private server link for the trade.',
+    'agree': '✅ I agree to the trade terms. Ready to proceed!'
+  };
+  await db.ref(`tradeChats/${currentTradeSession}/messages`).push({
+    uid: CU.uid, name: UP?.displayName||'User',
+    text: msgs[type], ts: Date.now(), type: 'user'
+  });
+}
+
+async function completeTrade() {
+  if(!currentTradeSession) return;
+  if(!confirm('Mark this trade as completed? Both parties should have received their items.')) return;
+  await db.ref('tradeSessions/'+currentTradeSession).update({ status: 'completed', completedAt: Date.now() });
+  await db.ref(`tradeChats/${currentTradeSession}/messages`).push({
+    type: 'system', text: '✅ Trade marked as COMPLETED by ' + (UP?.displayName||'User'), ts: Date.now()
+  });
+  // Find trade and close it
+  const sess = (await db.ref('tradeSessions/'+currentTradeSession).once('value')).val();
+  if(sess?.tradeId) await db.ref('trades/'+sess.tradeId).update({ status: 'completed' });
+  toast('Trade completed! 🎉','ok');
+  G('tc-complete-btn').style.display = 'none';
+  G('tc-cancel-btn').style.display = 'none';
+  G('tc-status').textContent = 'Status: completed';
+}
+
+async function cancelTrade() {
+  if(!currentTradeSession) return;
+  if(!confirm('Cancel this trade session?')) return;
+  await db.ref('tradeSessions/'+currentTradeSession).update({ status: 'cancelled', cancelledAt: Date.now() });
+  await db.ref(`tradeChats/${currentTradeSession}/messages`).push({
+    type: 'system', text: '❌ Trade cancelled by ' + (UP?.displayName||'User'), ts: Date.now()
+  });
+  const sess = (await db.ref('tradeSessions/'+currentTradeSession).once('value')).val();
+  if(sess?.tradeId) await db.ref('trades/'+sess.tradeId).update({ status: 'open', activeSession: null });
+  toast('Trade cancelled','inf');
+  closeM('trade-chat');
+}
+
+async function cancelMyTrade(id) {
+  if(!confirm('Cancel this trade post?')) return;
+  await db.ref('trades/'+id).update({ status: 'cancelled' });
+  toast('Trade post cancelled','ok');
+  loadTrades();
+}
+
+/* ── My Trades List ── */
+async function loadMyTradesList() {
+  const el = G('my-trades-list'); if(!el) return;
+  el.innerHTML = '<div class="spin"></div>';
+  if(!CU) { el.innerHTML = '<div class="empty"><div>Login first</div></div>'; return; }
+  try {
+    const s = await db.ref('trades').orderByChild('userId').equalTo(CU.uid).once('value');
+    const data = s.val() || {};
+    const ent = Object.entries(data).reverse();
+    if(!ent.length) {
+      el.innerHTML = `<div class="empty"><div class="ei">🔄</div><div>No trades posted yet</div></div>
+        <button class="btn btn-p" style="margin:12px auto;display:block;" onclick="openTradeForm()">+ Post Trade</button>`;
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;">' +
+      ent.map(([id,t]) => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;">
+          ${tradeCard(id,t,true)}
+          ${t.activeSession ? `<div style="padding:8px 16px 12px;">
+            <button class="btn btn-p btn-sm" onclick="loadAndOpenChat('${t.activeSession}')">💬 Open Chat</button>
+          </div>` : ''}
+        </div>`).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty"><div>Error loading</div></div>'; }
+}
+
+/* ── Incoming Requests ── */
+async function loadIncomingRequests() {
+  const el = G('incoming-req-list'); if(!el) return;
+  el.innerHTML = '<div class="spin"></div>';
+  if(!CU) { el.innerHTML = '<div class="empty"><div>Login first</div></div>'; return; }
+  try {
+    const s = await db.ref('tradeSessions').orderByChild('tradeOwner/uid').equalTo(CU.uid).once('value');
+    const data = s.val() || {};
+    const ent = Object.entries(data).filter(([,sess]) => sess.status === 'pending' || sess.status === 'ongoing').reverse();
+    const badge = G('req-badge');
+    if(badge) { badge.textContent = ent.length; badge.style.display = ent.length ? 'inline' : 'none'; }
+    if(!ent.length) {
+      el.innerHTML = '<div class="empty"><div class="ei">📬</div><div>No incoming trade requests</div></div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:12px;">' +
+      ent.map(([id,sess]) => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+            <div>
+              <div style="font-family:var(--fc);font-weight:700;font-size:16px;">From: ${sess.requester.name}</div>
+              <div style="font-size:12px;color:var(--grey);">Game username: ${sess.requester.gameUsername||'-'}</div>
+            </div>
+            <span class="bd ${sess.status==='pending'?'bd-y':'bd-b'}">${sess.status}</span>
+          </div>
+          <div style="background:var(--bg3);border-radius:var(--r);padding:10px;margin-bottom:10px;font-size:13px;">
+            <div>They offer: <strong>${sess.tradeOffer.requesterOffers}</strong></div>
+            <div>They want: <strong>${sess.tradeOffer.requesterWants}</strong></div>
+          </div>
+          ${sess.message ? `<div style="color:var(--grey);font-size:12px;margin-bottom:10px;">"${sess.message}"</div>` : ''}
+          <div style="display:flex;gap:7px;flex-wrap:wrap;">
+            <button class="btn btn-p btn-sm" onclick="acceptRequest('${id}','${sess.tradeId}')">✅ Accept & Chat</button>
+            <button class="btn btn-d btn-sm" onclick="declineRequest('${id}','${sess.tradeId}')">❌ Decline</button>
+          </div>
+          <div style="font-size:11px;color:var(--grey2);margin-top:8px;">${ago(sess.createdAt)}</div>
+        </div>`).join('') + '</div>';
+  } catch(e) { console.error(e); el.innerHTML = '<div class="empty"><div>Error loading</div></div>'; }
+}
+
+async function acceptRequest(sessionId, tradeId) {
+  await db.ref('tradeSessions/'+sessionId).update({ status: 'ongoing' });
+  await db.ref('trades/'+tradeId).update({ status: 'ongoing', activeSession: sessionId });
+  await db.ref(`tradeChats/${sessionId}/messages`).push({
+    type: 'system', text: `✅ ${UP?.displayName||'Trade owner'} accepted the trade request. Chat is now open!`, ts: Date.now()
+  });
+  toast('Request accepted! Opening chat...','ok');
+  loadAndOpenChat(sessionId);
+}
+
+async function declineRequest(sessionId, tradeId) {
+  if(!confirm('Decline this trade request?')) return;
+  await db.ref('tradeSessions/'+sessionId).update({ status: 'cancelled' });
+  await db.ref('trades/'+tradeId).update({ status: 'open', activeSession: null });
+  await db.ref(`tradeChats/${sessionId}/messages`).push({
+    type: 'system', text: '❌ Trade request declined.', ts: Date.now()
+  });
+  toast('Request declined','inf');
+  loadIncomingRequests();
+}
+
+async function loadAndOpenChat(sessionId) {
+  const s = await db.ref('tradeSessions/'+sessionId).once('value');
+  openTradeChat(sessionId, s.val());
+}
+
+/* ── Trade History ── */
+async function loadTradeHistory() {
+  const el = G('trade-history-list'); if(!el) return;
+  el.innerHTML = '<div class="spin"></div>';
+  if(!CU) { el.innerHTML = '<div class="empty"><div>Login first</div></div>'; return; }
+  try {
+    // Load sessions where user is involved
+    const [ownerSess, reqSess] = await Promise.all([
+      db.ref('tradeSessions').orderByChild('tradeOwner/uid').equalTo(CU.uid).once('value'),
+      db.ref('tradeSessions').orderByChild('requester/uid').equalTo(CU.uid).once('value')
+    ]);
+    const ownerData = ownerSess.val() || {};
+    const reqData   = reqSess.val() || {};
+    const all = { ...ownerData, ...reqData };
+    const completed = Object.entries(all).filter(([,s]) => s.status === 'completed' || s.status === 'cancelled');
+    if(!completed.length) {
+      el.innerHTML = '<div class="empty"><div class="ei">📋</div><div>No trade history yet</div></div>';
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' +
+      completed.reverse().map(([id,sess]) => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
+            <div style="font-family:var(--fc);font-weight:700;font-size:14px;">
+              ${sess.originalTrade?.have} ⇄ ${sess.originalTrade?.want}
+            </div>
+            <span class="bd ${sess.status==='completed'?'bd-g':'bd-r'}">${sess.status}</span>
+          </div>
+          <div style="font-size:12px;color:var(--grey);">
+            With: ${CU.uid===sess.tradeOwner.uid ? sess.requester.name : sess.tradeOwner.name} •
+            ${ago(sess.createdAt)}
+          </div>
+          <button class="btn btn-g btn-xs" style="margin-top:8px;" onclick="loadAndOpenChat('${id}')">📋 View Chat Log</button>
+        </div>`).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty"><div>Error loading</div></div>'; }
+}
+
+/* ── Report System ── */
+function openReportModal(tradeId, sessionId) {
+  const trade = TRADES[tradeId]; if(!trade) return;
+  G('report-target-uid').value = trade.userId;
+  G('report-trade-session').value = sessionId || tradeId;
+  G('report-reason').value = '';
+  G('report-detail').value = '';
+  openM('report');
+}
+function reportTradeUser() {
+  const sess = currentTradeSession; if(!sess) return;
+  G('report-target-uid').value = '';
+  G('report-trade-session').value = sess;
+  G('report-reason').value = '';
+  G('report-detail').value = '';
+  openM('report');
+}
+async function submitReport() {
+  const reason = G('report-reason').value;
+  const detail = G('report-detail').value.trim();
+  const targetUid = G('report-target-uid').value;
+  const sessionId = G('report-trade-session').value;
+  if(!reason) { toast('Select a reason','err'); return; }
+  try {
+    const report = {
+      reportedBy: CU.uid, reporterName: UP?.username||'User',
+      targetUid, sessionId, reason, detail,
+      ts: Date.now(), status: 'pending'
+    };
+    await db.ref('reports').push(report);
+    // Increment report count on trade
+    if(TRADES[sessionId]) await db.ref(`trades/${sessionId}/reportCount`).transaction(v => (v||0)+1);
+    // Auto-ban check: if reported 3+ times
+    if(targetUid) {
+      const repSnap = await db.ref('reports').orderByChild('targetUid').equalTo(targetUid).once('value');
+      const repCount = Object.keys(repSnap.val()||{}).length;
+      if(repCount >= 3) {
+        await db.ref('users/'+targetUid+'/banned').set(true);
+        await db.ref('users/'+targetUid+'/banReason').set('Auto-ban: reported 3+ times for '+reason);
+        console.warn('User auto-banned:', targetUid);
+      }
+    }
+    toast('Report submitted. We will review it shortly.','ok');
+    closeM('report');
+  } catch(e) { toast('Error: '+e.message,'err'); }
+}
+
+/* ── Check incoming requests badge on load ── */
+async function checkIncomingBadge() {
+  if(!CU) return;
+  try {
+    const s = await db.ref('tradeSessions').orderByChild('tradeOwner/uid').equalTo(CU.uid).once('value');
+    const data = s.val() || {};
+    const pending = Object.values(data).filter(sess => sess.status === 'pending').length;
+    const badge = G('req-badge');
+    if(badge) { badge.textContent = pending; badge.style.display = pending ? 'inline' : 'none'; }
+  } catch(e) {}
+}
+
+/* ── Load My Trades for profile tab ── */
+async function loadMyTrades() {
+  const el = G('pt-trades'); if(!el) return;
+  if(!CU) { el.innerHTML = '<div class="empty"><div>Login first</div></div>'; return; }
+  try {
+    const [tradeSnap, sessSnap] = await Promise.all([
+      db.ref('trades').orderByChild('userId').equalTo(CU.uid).once('value'),
+      db.ref('tradeSessions').orderByChild('requester/uid').equalTo(CU.uid).once('value')
+    ]);
+    const myTrades = tradeSnap.val() || {};
+    const mySessions = sessSnap.val() || {};
+    if(!Object.keys(myTrades).length && !Object.keys(mySessions).length) {
+      el.innerHTML = `<div class="empty"><div class="ei">🔄</div><div>No trades yet</div></div>
+        <button class="btn btn-p" style="margin:12px auto;display:block;" onclick="go('trending');openTradeForm();">+ Post Trade</button>`;
+      return;
+    }
+    el.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' +
+      Object.entries(myTrades).map(([id,t]) => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px;">
+          ${tradeCard(id, t, true)}
+          ${t.activeSession ? `<button class="btn btn-p btn-sm" style="margin-top:8px;" onclick="loadAndOpenChat('${t.activeSession}')">💬 Open Chat</button>` : ''}
+        </div>`).join('') +
+      Object.entries(mySessions).map(([id,sess]) => `
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;">
+          <div style="font-family:var(--fc);font-weight:700;font-size:14px;margin-bottom:4px;">Request I Sent</div>
+          <div style="font-size:12px;color:var(--grey);margin-bottom:8px;">${sess.originalTrade?.have} ⇄ ${sess.originalTrade?.want} • <span class="bd ${sess.status==='ongoing'?'bd-b':sess.status==='completed'?'bd-g':'bd-r'}">${sess.status}</span></div>
+          <button class="btn btn-g btn-xs" onclick="loadAndOpenChat('${id}')">💬 Chat</button>
+        </div>`).join('') + '</div>';
+  } catch(e) { el.innerHTML = '<div class="empty"><div>Error</div></div>'; }
+}
+
+async function delTrade(id) {
+  if(!confirm('Delete this trade post?')) return;
+  await db.ref('trades/'+id).remove();
+  toast('Deleted','ok');
+  loadTrades();
 }
 
 // ─── RATING ───
